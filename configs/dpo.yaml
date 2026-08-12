@@ -1,0 +1,26 @@
+# Этап 5: DPO на парах из неявной обратной связи.
+# Продолжает обучение того же адаптера, что вышел из SFT.
+
+base_model: Qwen/Qwen3-8B
+
+# Должен совпадать с бэкендом, которым обучался адаптер на этапе SFT.
+engine: unsloth
+
+adapter_path: outputs/adapter-decisions
+pairs_file: data/processed/preference_pairs.jsonl
+output_dir: outputs/adapter-decisions-dpo
+
+# Низкий lr намеренно: DPO на нескольких тысячах пар легко разрушает SFT.
+learning_rate: 5.0e-6
+beta: 0.1
+num_epochs: 1.0
+per_device_batch_size: 2
+gradient_accumulation_steps: 8
+max_length: 4096
+max_prompt_length: 3072
+
+logging_steps: 10
+seed: 42
+bf16: true
+gradient_checkpointing: true
+load_in_4bit: false

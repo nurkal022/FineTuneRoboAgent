@@ -1,0 +1,44 @@
+# Этап 2: SFT адаптера решений.
+# Базовые веса заморожены — обучается только LoRA.
+
+base_model: Qwen/Qwen3-8B
+
+# unsloth — вдвое меньше VRAM и примерно вдвое быстрее, но один GPU
+#           и жёсткая привязка к версиям transformers/trl
+# hf       — запасной путь: медленнее и прожорливее, зато устойчив к обновлениям
+engine: unsloth
+
+train_file: data/processed/train.jsonl
+val_file: data/processed/val.jsonl
+output_dir: outputs/adapter-decisions
+
+learning_rate: 1.0e-4
+num_epochs: 3.0
+per_device_batch_size: 4
+gradient_accumulation_steps: 4
+max_length: 4096
+warmup_ratio: 0.03
+
+logging_steps: 10
+eval_steps: 100
+save_steps: 200
+seed: 42
+
+bf16: true
+gradient_checkpointing: true
+# true — если база не помещается в память. С unsloth на 24 ГБ обычно не требуется.
+load_in_4bit: false
+
+lora:
+  r: 32
+  alpha: 64
+  # 0 — быстрый путь unsloth. Ненулевое значение работает, но медленнее.
+  dropout: 0.0
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj

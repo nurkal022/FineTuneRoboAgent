@@ -1,0 +1,45 @@
+# Состав обучающего микса (раздел 6.5 спеки).
+#
+# ВАЖНО: перед первым запуском сверьте имена колонок командой
+#   robo-agency inspect-dataset <path>
+# и при необходимости пропишите field_map явно. Автоопределение работает
+# по списку кандидатов и на новой версии датасета может промахнуться.
+
+seed: 42
+val_ratio: 0.05
+
+# null = взять максимум, при котором ни один источник не дублируется.
+# Ограничивающий источник — проактивность (ProactiveBench ~6790 событий),
+# поэтому реалистичный потолок порядка 12-15 тысяч примеров.
+target_size: null
+
+proportions:
+  # 0.55 = 50% проактивности + 5% негативных примеров: в готовых корпусах
+  # негативы это строки с меткой «отклонено», отдельным источником они не лежат.
+  proactivity: 0.55
+  function_calling: 0.20
+  replay: 0.25
+
+proactivity:
+  - path: data/raw/proactive_bench.jsonl
+    split: train
+    # field_map:
+    #   observation: events
+    #   action: task
+    #   label: label
+  # - path: data/raw/when2call.jsonl
+  #   split: train
+
+function_calling:
+  - path: Salesforce/xlam-function-calling-60k
+    split: train
+    limit: 20000
+  # - path: NousResearch/hermes-function-calling-v1
+  #   split: train
+
+replay:
+  - path: HuggingFaceH4/ultrachat_200k
+    split: train_sft
+    limit: 20000
+  # - path: OpenAssistant/oasst2
+  #   split: train
