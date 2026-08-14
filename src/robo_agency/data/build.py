@@ -10,8 +10,8 @@ from typing import Any, Iterable
 
 import yaml
 
-from . import conversational, proactivity
-from .mixer import Source, build_mix, train_val_split
+from . import conversational, proactive_agent, proactivity
+from .mixer import Source, build_mix, downsample_to_balance, train_val_split
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,9 @@ class DatasetSpec:
     name: str | None = None
     limit: int | None = None
     field_map: dict[str, str | None] | None = None
+    # "auto" — определить по структуре записи; "proactive_agent" или
+    # "generic" — задать явно, если автоопределение промахнулось.
+    format: str = "auto"
 
 
 def _load_rows(spec: DatasetSpec) -> list[dict[str, Any]]:
@@ -65,15 +68,38 @@ def _columns_of(rows: Iterable[dict[str, Any]]) -> list[str]:
     return []
 
 
+def _decision_of(example: dict[str, Any]) -> str:
+    """Тип решения в готовом примере — ключ для выравнивания классов."""
+    assistant = example["messages"][-1]["content"]
+    for name in ("ACT", "WAIT", "OBSERVE"):
+        if f'"{name}"' in assistant:
+            return name
+    return "UNKNOWN"
+
+
+def _resolve_format(spec: DatasetSpec, rows: list[dict[str, Any]]) -> str:
+    if spec.format != "auto":
+        return spec.format
+    return "proactive_agent" if proactive_agent.matches(rows) else "generic"
+
+
 def build_proactivity(specs: list[DatasetSpec]) -> list[dict[str, Any]]:
     examples: list[dict[str, Any]] = []
     for spec in specs:
         rows = _load_rows(spec)
         if not rows:
             continue
-        field_map = proactivity.ProactivityFieldMap(**(spec.field_map or {}))
-        config = proactivity.ProactivityConfig(field_map=field_map)
-        examples.extend(proactivity.convert(rows, _columns_of(rows), config))
+
+        fmt = _resolve_format(spec, rows)
+        logger.info("Формат %s: %s", spec.path, fmt)
+
+        if fmt == "proactive_agent":
+            examples.extend(proactive_agent.convert(rows))
+        else:
+            field_map = proactivity.ProactivityFieldMap(**(spec.field_map or {}))
+            config = proactivity.ProactivityConfig(field_map=field_map)
+            examples.extend(proactivity.convert(rows, _columns_of(rows), config))
+
     logger.info("Проактивность: собрано %d примеров", len(examples))
     return examples
 
@@ -100,13 +126,21 @@ def build_from_config(config_path: str | Path, output_dir: str | Path) -> None:
     function_calling = build_conversational(_specs(config.get("function_calling")))
     replay = build_conversational(_specs(config.get("replay")))
 
+    logger.info("Баланс до выравнивания: %s", proactivity.label_balance(proactive))
+
+    if config.get("proactivity_balance", True):
+        proactive, counts = downsample_to_balance(
+            proactive, _decision_of, config.get("seed", 42)
+        )
+        logger.info("После выравнивания: %s, всего %d", counts, len(proactive))
+
     balance = proactivity.label_balance(proactive)
-    logger.info("Баланс решений в проактивных данных: %s", balance)
     act_share = balance.get("ACT", 0.0)
     if not 0.35 <= act_share <= 0.65:
         logger.warning(
             "Доля ACT равна %.1f%%, спека требует около 50%%. "
-            "Перекос в ACT ведёт к навязчивому роботу.", act_share * 100,
+            "Перекос в WAIT ведёт к молчаливому роботу, перекос в ACT — к навязчивому.",
+            act_share * 100,
         )
 
     proportions = config["proportions"]

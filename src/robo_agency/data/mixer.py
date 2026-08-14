@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import random
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +112,43 @@ def build_mix(
         truncated=truncated,
     )
     return mixed, report
+
+
+def downsample_to_balance(
+    examples: Sequence[dict[str, Any]],
+    key: Callable[[dict[str, Any]], str],
+    seed: int = 42,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    """Уравнивает классы, прореживая преобладающие.
+
+    Нужно для проактивности: в готовых корпусах решений «промолчать» кратно
+    больше, чем «вмешаться», и на несбалансированной выборке модель приходит
+    к вырожденной стратегии — всегда WAIT. Такая модель показывает высокую
+    точность и полную бесполезность.
+
+    Прореживаем большинство, а не размножаем меньшинство: дублирование редких
+    положительных примеров ведёт к переобучению на них.
+    """
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for example in examples:
+        grouped.setdefault(key(example), []).append(example)
+
+    if len(grouped) < 2:
+        return list(examples), {name: len(items) for name, items in grouped.items()}
+
+    target = min(len(items) for items in grouped.values())
+    rng = random.Random(seed)
+
+    balanced: list[dict[str, Any]] = []
+    counts: dict[str, int] = {}
+    for name, items in sorted(grouped.items()):
+        pool = list(items)
+        rng.shuffle(pool)
+        balanced.extend(pool[:target])
+        counts[name] = target
+
+    rng.shuffle(balanced)
+    return balanced, counts
 
 
 def train_val_split(

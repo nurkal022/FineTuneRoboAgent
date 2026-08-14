@@ -1,45 +1,37 @@
 # Состав обучающего микса (раздел 6.5 спеки).
 #
-# ВАЖНО: перед первым запуском сверьте имена колонок командой
-#   robo-agency inspect-dataset <path>
-# и при необходимости пропишите field_map явно. Автоопределение работает
-# по списку кандидатов и на новой версии датасета может промахнуться.
+# Файл проактивности создаётся командой `make fetch`.
+# Формат определяется автоматически; при промахе задайте format и field_map явно.
 
 seed: 42
 val_ratio: 0.05
 
 # null = взять максимум, при котором ни один источник не дублируется.
-# Ограничивающий источник — проактивность (ProactiveBench ~6790 событий),
-# поэтому реалистичный потолок порядка 12-15 тысяч примеров.
+# Ограничивает проактивность: после выравнивания классов её около 1000
+# примеров, поэтому потолок всего корпуса — примерно 1800.
 target_size: null
 
+# Выравнивание ACT/WAIT прореживанием преобладающего класса.
+# В исходных данных WAIT встречается вдвое чаще (1122 против 504), и без
+# выравнивания модель приходит к вырожденной стратегии «молчать всегда».
+proactivity_balance: true
+
 proportions:
-  # 0.55 = 50% проактивности + 5% негативных примеров: в готовых корпусах
-  # негативы это строки с меткой «отклонено», отдельным источником они не лежат.
+  # 0.55 = 50% проактивности + 5% негативных примеров. После выравнивания
+  # негативы это половина класса WAIT, отдельным источником они не нужны.
   proactivity: 0.55
   function_calling: 0.20
   replay: 0.25
 
 proactivity:
   - path: data/raw/proactive_bench.jsonl
-    split: train
-    # field_map:
-    #   observation: events
-    #   action: task
-    #   label: label
-  # - path: data/raw/when2call.jsonl
-  #   split: train
+    # format: proactive_agent   # задать явно, если автоопределение промахнётся
 
 function_calling:
+  # Срез в split скачивает меньше данных: из 60k нужно всего несколько сотен.
   - path: Salesforce/xlam-function-calling-60k
-    split: train
-    limit: 20000
-  # - path: NousResearch/hermes-function-calling-v1
-  #   split: train
+    split: train[:5000]
 
 replay:
   - path: HuggingFaceH4/ultrachat_200k
-    split: train_sft
-    limit: 20000
-  # - path: OpenAssistant/oasst2
-  #   split: train
+    split: train_sft[:5000]

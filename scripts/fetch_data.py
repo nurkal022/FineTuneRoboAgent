@@ -22,7 +22,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from robo_agency.data import proactivity  # noqa: E402
+from robo_agency.data import proactive_agent, proactivity  # noqa: E402
 
 REPO_URL = "https://github.com/thunlp/ProactiveAgent"
 GREEN, YELLOW, RED, BOLD, RESET = "\033[32m", "\033[33m", "\033[31m", "\033[1m", "\033[0m"
@@ -69,9 +69,13 @@ def read_rows(path: Path, limit: int | None = None) -> list[dict[str, Any]]:
 
 
 def usable_examples(rows: list[dict[str, Any]]) -> int:
-    """Сколько обучающих примеров даёт файл нашим конвертером."""
+    """Сколько обучающих примеров даёт файл нашими конвертерами."""
     if not rows or not isinstance(rows[0], dict):
         return 0
+
+    if proactive_agent.matches(rows):
+        return sum(1 for _ in proactive_agent.convert(rows))
+
     try:
         return sum(1 for _ in proactivity.convert(rows, rows[0].keys()))
     except Exception:  # noqa: BLE001 — неподходящий файл это норма, а не сбой
