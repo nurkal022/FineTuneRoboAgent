@@ -61,9 +61,10 @@ pip install unsloth
 ```bash
 git clone https://github.com/nurkal022/FineTuneRoboAgent.git
 cd FineTuneRoboAgent
-make setup          # драйвер, uv, torch под CUDA 12.8, unsloth, проект, тесты
+make setup          # драйвер, uv, torch под CUDA, unsloth, проект, тесты
 source .venv/bin/activate
 make preflight      # проверка GPU и оценка VRAM по конфигу
+make fetch          # скачать корпус проактивности
 make data           # сборка корпуса
 make sft            # обучение адаптера
 ```
@@ -103,10 +104,18 @@ CUDA 12.8. Обычный `pip install torch` ставит сборку под �
 
 | Симптом | Причина и что делать |
 |---|---|
-| `no kernel image is available` | Сборка torch без sm_120. Переустановить: `uv pip install torch --torch-backend=auto` |
-| `CUDA out of memory` | Уменьшить `max_length` до 1536 или `gradient_accumulation_steps` оставить, а `per_device_batch_size` уже равен 1 |
-| Unsloth не импортируется | Переключить `engine: hf` в конфиге — обучение пойдёт медленнее, но пойдёт |
-| Обучение подозрительно медленное | Проверить `make preflight`: скорее всего torch работает на CPU |
+| `torch не видит CUDA`, версия вида `2.x+cpu` | **Самая частая проблема.** Unsloth ограничивает версию torch сверху, и при понижении версии менеджер уходит в дефолтный индекс за CPU-сборкой. Лечится: `make doctor` |
+| `no kernel image is available` | Сборка torch без `sm_120`. Тоже `make doctor` |
+| `Не найден файл данных` | Корпус не скачан: `make fetch` |
+| `CUDA out of memory` | Уменьшить `max_length` до 1536; `per_device_batch_size` уже равен 1 |
+| Unsloth не импортируется | Переключить `engine: hf` в конфигах — медленнее, но работает |
+| Обучение подозрительно медленное | `make preflight`: почти наверняка torch на CPU |
+
+**Про `make doctor`.** Установка Unsloth способна молча заменить CUDA-сборку
+torch на CPU-сборку: команда завершится успешно, тесты пройдут, и только
+обучение будет идти в десятки раз медленнее. `make setup` теперь ставит torch
+и unsloth одной резолюцией и проверяет результат после каждого шага, но если
+это повторится на новой версии — `make doctor` переставит torch из CUDA-индекса.
 
 ## Порядок работы
 

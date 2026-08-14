@@ -28,6 +28,17 @@ class DatasetSpec:
 def _load_rows(spec: DatasetSpec) -> list[dict[str, Any]]:
     """Грузит датасет с Hugging Face или локальный json/jsonl."""
     local = Path(spec.path)
+
+    # Путь с расширением — это локальный файл. Если его нет, отправлять такую
+    # строку в load_dataset бессмысленно: она утонет в стеке Hugging Face с
+    # невнятной ошибкой вместо понятного «скачайте данные».
+    if local.suffix in {".json", ".jsonl"} and not local.exists():
+        raise FileNotFoundError(
+            f"Не найден файл данных: {local}\n"
+            f"  Скачайте корпус проактивности:  make fetch\n"
+            f"  Либо укажите другой путь в конфиге микса."
+        )
+
     if local.exists():
         if local.suffix == ".jsonl":
             with local.open(encoding="utf-8") as handle:
