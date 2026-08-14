@@ -41,6 +41,34 @@ class MixReport:
         return "\n".join(lines)
 
 
+def drop_empty_and_renormalize(sources: Sequence[Source]) -> list[Source]:
+    """Убирает пустые источники и перераспределяет их доли между остальными.
+
+    Источник может оказаться пустым по внешней причине: датасет закрыт
+    авторизацией, сети нет, формат не разобрался. Ронять из-за этого весь
+    корпус неправильно, молча оставлять нулевую долю — тоже: build_mix тогда
+    вернёт пустой микс, потому что предельный размер считается по минимуму.
+    """
+    alive = [source for source in sources if source.examples]
+    dropped = [source.name for source in sources if not source.examples]
+
+    if not alive:
+        raise ValueError("Все источники данных пусты — собирать корпус не из чего")
+
+    if dropped:
+        total = sum(source.proportion for source in alive)
+        logger.warning(
+            "Источники без данных исключены из микса: %s. "
+            "Доли остальных пересчитаны.", ", ".join(dropped),
+        )
+        alive = [
+            Source(source.name, source.examples, source.proportion / total)
+            for source in alive
+        ]
+
+    return alive
+
+
 def _max_total(sources: Sequence[Source]) -> tuple[int, str]:
     """Наибольший размер микса, при котором ни один источник не дублируется."""
     best_total = None

@@ -28,9 +28,16 @@ proactivity:
     # format: proactive_agent   # задать явно, если автоопределение промахнётся
 
 function_calling:
-  # Срез в split скачивает меньше данных: из 60k нужно всего несколько сотен.
-  - path: Salesforce/xlam-function-calling-60k
-    split: train[:5000]
+  # Срез в split скачивает меньше данных: нужно всего несколько сотен примеров.
+  #
+  # Salesforce/xlam-function-calling-60k сюда НЕ включён намеренно: он gated,
+  # то есть требует токена HF и принятия условий. Указанные ниже — открытые.
+  # Если получите доступ к xlam, добавьте его строкой и задайте HF_TOKEN.
+  - path: NousResearch/hermes-function-calling-v1
+    name: func_calling_singleturn
+    split: train[:3000]
+  - path: glaiveai/glaive-function-calling-v2
+    split: train[:3000]
 
 replay:
   - path: HuggingFaceH4/ultrachat_200k

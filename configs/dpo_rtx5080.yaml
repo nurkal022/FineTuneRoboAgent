@@ -4,7 +4,8 @@
 # обучаемой политики, и для опорной модели. Поэтому длины здесь ещё короче,
 # чем в SFT-профиле.
 
-base_model: Qwen/Qwen3-8B
+# Тот же предквантованный вариант, что и в SFT-профиле.
+base_model: unsloth/Qwen3-8B-unsloth-bnb-4bit
 engine: unsloth
 
 adapter_path: outputs/adapter-decisions

@@ -11,7 +11,13 @@ from typing import Any, Iterable
 import yaml
 
 from . import conversational, proactive_agent, proactivity
-from .mixer import Source, build_mix, downsample_to_balance, train_val_split
+from .mixer import (
+    Source,
+    build_mix,
+    downsample_to_balance,
+    drop_empty_and_renormalize,
+    train_val_split,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +113,18 @@ def build_proactivity(specs: list[DatasetSpec]) -> list[dict[str, Any]]:
 def build_conversational(specs: list[DatasetSpec]) -> list[dict[str, Any]]:
     examples: list[dict[str, Any]] = []
     for spec in specs:
-        rows = _load_rows(spec)
+        try:
+            rows = _load_rows(spec)
+        except Exception as error:  # noqa: BLE001
+            # Недоступный источник (закрыт авторизацией, нет сети, переехал)
+            # не должен ронять сборку целиком: доли пересчитаются по живым.
+            logger.warning(
+                "Источник %s пропущен: %s: %s\n"
+                "  Если датасет закрыт авторизацией — задайте HF_TOKEN "
+                "или уберите его из конфига.",
+                spec.path, type(error).__name__, error,
+            )
+            continue
         examples.extend(conversational.convert(rows))
     return examples
 
@@ -143,12 +160,18 @@ def build_from_config(config_path: str | Path, output_dir: str | Path) -> None:
             act_share * 100,
         )
 
+    from .mixer import drop_empty_and_renormalize
+
     proportions = config["proportions"]
     sources = [
         Source("proactivity", proactive, proportions["proactivity"]),
         Source("function_calling", function_calling, proportions["function_calling"]),
         Source("replay", replay, proportions["replay"]),
     ]
+    # Источник мог отвалиться (закрыт авторизацией, нет сети). Без пересчёта
+    # долей предельный размер микса считался бы по нулю и корпус вышел пустым.
+    sources = drop_empty_and_renormalize(sources)
+
     mixed, report = build_mix(sources, config.get("target_size"), config.get("seed", 42))
     logger.info("\n%s", report.describe())
 
