@@ -129,9 +129,33 @@ def main() -> int:
     total_usable = sum(count for _, _, count in candidates)
     print(f"\n{BOLD}Записано{RESET} {written} строк в {output}")
     print(f"Из них конвертер извлечёт примерно {total_usable} обучающих примеров.")
-    print(f"Потолок размера корпуса при доле 55%: около {int(total_usable / 0.55)} примеров.")
+
+    # Потолок считается ПОСЛЕ выравнивания классов: в исходных данных WAIT
+    # преобладает, и прореживание уменьшает корпус примерно вдвое.
+    all_rows = [row for path, _, _ in candidates for row in read_rows(path)]
+    balanced = _balanced_count(all_rows)
+    if balanced:
+        print(
+            f"После выравнивания ACT/WAIT останется около {balanced}, "
+            f"потолок корпуса при доле 55%: примерно {int(balanced / 0.55)} примеров."
+        )
+
     print("\nДальше: make data")
     return 0
+
+
+def _balanced_count(rows: list[dict[str, Any]]) -> int:
+    """Сколько проактивных примеров останется после выравнивания классов."""
+    if not proactive_agent.matches(rows):
+        return 0
+    counts: dict[str, int] = {}
+    for example in proactive_agent.convert(rows):
+        assistant = example["messages"][-1]["content"]
+        for name in ("ACT", "WAIT", "OBSERVE"):
+            if f'"{name}"' in assistant:
+                counts[name] = counts.get(name, 0) + 1
+                break
+    return min(counts.values()) * len(counts) if len(counts) > 1 else sum(counts.values())
 
 
 if __name__ == "__main__":

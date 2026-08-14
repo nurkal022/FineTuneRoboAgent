@@ -13,6 +13,18 @@ app = typer.Typer(add_completion=False, help="Проактивная агент�
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 
+@app.callback()
+def _bootstrap() -> None:
+    """Подготовка окружения до любых импортов Hugging Face.
+
+    Вызывается перед каждой командой: и загрузка датасетов, и скачивание
+    базовой модели упираются в один и тот же кеш.
+    """
+    from .env import ensure_writable_hf_cache
+
+    ensure_writable_hf_cache()
+
+
 @app.command("inspect-dataset")
 def inspect_dataset(
     path: str = typer.Argument(..., help="Путь на Hugging Face или локальный json/jsonl"),

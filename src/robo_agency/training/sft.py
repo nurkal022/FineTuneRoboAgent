@@ -71,6 +71,12 @@ def load_config(path: str | Path) -> SftConfigSpec:
 
 
 def _load_jsonl(path: str | Path) -> list[dict[str, Any]]:
+    if not Path(path).exists():
+        raise FileNotFoundError(
+            f"Не найден обучающий корпус: {path}\n"
+            f"  Соберите его:  make fetch && make data"
+        )
+
     rows = []
     with Path(path).open(encoding="utf-8") as handle:
         for line in handle:
