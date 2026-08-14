@@ -1,0 +1,52 @@
+# Профиль под RTX 5080 (Blackwell, 16 ГБ).
+#
+# Ключевое ограничение карты — 16 ГБ. Qwen3-8B в bf16 это одни только веса
+# ~16 ГБ, то есть базовый конфиг сюда не влезает в принципе. Поэтому здесь
+# QLoRA: веса в 4 битах (~4.5 ГБ), а обучаемый адаптер остаётся в высокой
+# точности. Качество адаптера при этом страдает незначительно.
+
+base_model: Qwen/Qwen3-8B
+engine: unsloth
+
+train_file: data/processed/train.jsonl
+val_file: data/processed/val.jsonl
+output_dir: outputs/adapter-decisions
+
+# 4 бита обязательны на 16 ГБ.
+load_in_4bit: true
+
+learning_rate: 1.0e-4
+num_epochs: 3.0
+
+# Батч 1 при накоплении 16 даёт эффективный батч 16 — столько же, сколько
+# 4x4 в базовом конфиге, но пик памяти вчетверо ниже.
+per_device_batch_size: 1
+gradient_accumulation_steps: 16
+
+# 2048 вместо 4096: активации растут линейно по длине, и это второй по
+# величине потребитель памяти после весов. Наши примеры (описание ситуации
+# плюс JSON-решение) в 2048 токенов укладываются с большим запасом; длинные
+# replay-диалоги будут обрезаны, что для их роли некритично.
+max_length: 2048
+
+warmup_ratio: 0.03
+logging_steps: 10
+eval_steps: 100
+save_steps: 200
+seed: 42
+
+bf16: true
+gradient_checkpointing: true
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.0
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
