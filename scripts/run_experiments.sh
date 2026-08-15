@@ -27,6 +27,22 @@ export PYTHONUNBUFFERED=1
 
 say() { printf '\n\033[1m==> %s\033[0m  [%s]\n' "$1" "$(date '+%H:%M:%S')"; }
 
+free_gb() { df -BG --output=avail ~ | tail -1 | tr -dc '0-9'; }
+
+# Чекпойнт весит ~514 МБ, а свободного места на этой машине около 11 ГБ.
+# После обхода метрики уже сохранены в JSON, сами веса больше не нужны:
+# финальный адаптер остаётся, промежуточные удаляются.
+drop_checkpoints() {
+    local run_dir="$1"
+    local before after
+    before=$(free_gb)
+    rm -rf "${run_dir}"/checkpoint-*
+    after=$(free_gb)
+    printf '  чекпойнты %s удалены, свободно было %s ГБ, стало %s ГБ\n' \
+        "$run_dir" "$before" "$after"
+    note "| очистка $run_dir | ${before}->${after} ГБ | | |"
+}
+
 note() { printf '%s\n' "$1" >> "$SUMMARY"; }
 
 run_step() {
@@ -53,6 +69,7 @@ cat > "$SUMMARY" <<EOF
 # Ночная серия
 
 Начата: $STARTED_AT
+Свободно на диске при старте: $(free_gb) ГБ
 
 | шаг | статус | время | лог |
 |---|---|---|---|
@@ -83,6 +100,8 @@ run_step "10-train-A-4epochs" $PY -m robo_agency.cli train-sft \
     --config configs/exp_a_4epochs.yaml
 run_step "11-sweep-A" $PY scripts/sweep_checkpoints.py \
     --run-dir outputs/exp-a-4epochs --out-dir "$RESULTS/sweeps"
+drop_checkpoints outputs/exp-a-4epochs
+
 run_step "12-retention-A" $PY -m robo_agency.cli retention \
     --base unsloth/Qwen3-8B-unsloth-bnb-4bit \
     --adapter outputs/exp-a-4epochs \
@@ -103,6 +122,8 @@ run_step "22-eval-B" $PY scripts/eval_decisions.py \
     --adapter outputs/exp-b-nobalance --val-file data/processed/val.jsonl \
     --limit 46 --show 0 --json "$RESULTS/agency_B_nobalance.json" --label B-nobalance
 
+drop_checkpoints outputs/exp-b-nobalance
+
 # --- C: без replay ---------------------------------------------------------
 
 run_step "30-data-C" $PY -m robo_agency.cli build-data \
@@ -121,8 +142,10 @@ run_step "34-tools-C" $PY -m robo_agency.cli retention \
     --adapter outputs/exp-c-noreplay \
     --eval-file data/processed/tools_eval.jsonl --limit 200
 
+drop_checkpoints outputs/exp-c-noreplay
+
 note ""
-note "Завершена: $(date '+%Y-%m-%d %H:%M:%S')"
+note "Завершена: $(date '+%Y-%m-%d %H:%M:%S'), свободно $(free_gb) ГБ"
 
 say "Серия завершена"
 cat "$SUMMARY"
