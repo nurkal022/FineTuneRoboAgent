@@ -10,6 +10,8 @@ from robo_agency import env
 def clean_env(monkeypatch):
     monkeypatch.delenv("HF_HOME", raising=False)
     monkeypatch.delenv("HF_HUB_CACHE", raising=False)
+    monkeypatch.delenv("HF_DATASETS_CACHE", raising=False)
+    monkeypatch.delenv("TRANSFORMERS_CACHE", raising=False)
 
 
 def test_writable_cache_from_env_is_kept(tmp_path, monkeypatch):
@@ -39,6 +41,33 @@ def test_unwritable_cache_falls_back_to_home(tmp_path, monkeypatch):
 
     assert chosen == fallback
     assert os.environ["HF_HUB_CACHE"] == str(fallback)
+
+
+def test_all_hf_cache_variables_follow_the_fallback(tmp_path, monkeypatch):
+    """Перенаправить надо ВСЕ переменные, а не только HF_HUB_CACHE.
+
+    На сервере внешний диск не смонтирован, но HF_HOME, HF_DATASETS_CACHE и
+    TRANSFORMERS_CACHE указывают на него. Починка одного HF_HUB_CACHE спасает
+    загрузку весов и не спасает `datasets`: тот читает HF_DATASETS_CACHE
+    напрямую и падает с PermissionError в середине `make data`.
+    """
+    dead = tmp_path / "unmounted" / "huggingface_cache"
+    fallback = tmp_path / "home" / ".cache" / "huggingface" / "hub"
+
+    monkeypatch.setenv("HF_HOME", str(dead))
+    monkeypatch.setenv("HF_DATASETS_CACHE", str(dead / "datasets"))
+    monkeypatch.setenv("TRANSFORMERS_CACHE", str(dead / "hub"))
+    monkeypatch.setattr(env, "_is_writable", lambda path: not str(path).startswith(str(dead)))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path / "home"))
+
+    chosen = env.ensure_writable_hf_cache()
+
+    assert chosen == fallback
+    assert os.environ["HF_HUB_CACHE"] == str(fallback)
+    assert os.environ["HF_HOME"] == str(fallback.parent)
+    assert os.environ["TRANSFORMERS_CACHE"] == str(fallback)
+    # datasets кладёт кеш рядом с хабом, а не внутрь него
+    assert os.environ["HF_DATASETS_CACHE"] == str(fallback.parent / "datasets")
 
 
 def test_hf_home_derived_when_only_home_set(tmp_path, monkeypatch):

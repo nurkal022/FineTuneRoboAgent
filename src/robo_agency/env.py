@@ -50,6 +50,20 @@ def free_space_gb(path: Path) -> float:
     return shutil.disk_usage(probe).free / 1024**3
 
 
+def _repoint_if_unwritable(variable: str, fallback: Path) -> None:
+    """Переставляет переменную кеша на запасной путь, если её путь не пишется.
+
+    Заданный пользователем писуемый путь не трогаем: он мог намеренно вынести
+    кеш датасетов на отдельный большой диск, и переезд ломал бы этот замысел.
+    """
+    current = os.environ.get(variable)
+    if current and _is_writable(Path(current)):
+        return
+    if current:
+        logger.warning("Кеш Hugging Face недоступен на запись: %s (%s)", current, variable)
+    os.environ[variable] = str(fallback)
+
+
 def ensure_writable_hf_cache() -> Path:
     """Выбирает доступный на запись кеш HF и прописывает его в окружение."""
     candidates = _candidates()
@@ -77,7 +91,14 @@ def ensure_writable_hf_cache() -> Path:
         )
 
     os.environ["HF_HUB_CACHE"] = str(chosen)
-    os.environ.setdefault("HF_HOME", str(chosen.parent))
+    _repoint_if_unwritable("HF_HOME", chosen.parent)
+    # Легаси-алиас хаба: transformers всё ещё читает его, если он задан.
+    _repoint_if_unwritable("TRANSFORMERS_CACHE", chosen)
+    # datasets держит свой кеш РЯДОМ с хабом, а не внутри него, и читает эту
+    # переменную напрямую — мимо HF_HUB_CACHE. Пока она указывала на
+    # несмонтированный диск, `make data` падал с PermissionError уже после
+    # начала загрузки, хотя веса при этом качались нормально.
+    _repoint_if_unwritable("HF_DATASETS_CACHE", chosen.parent / "datasets")
 
     free = free_space_gb(chosen)
     if free < RECOMMENDED_FREE_GB:

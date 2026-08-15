@@ -45,7 +45,7 @@ data: 	## Собрать обучающий корпус из готовых д�
 
 sft: preflight  ## Этап 2: обучить адаптер решений
 	@mkdir -p $(LOG_DIR)
-	$(PY) -m robo_agency.cli train-sft --config $(SFT_CONFIG) 2>&1 | tee $(LOG_DIR)/sft.log
+	PYTHONUNBUFFERED=1 $(PY) -m robo_agency.cli train-sft --config $(SFT_CONFIG) 2>&1 | tee $(LOG_DIR)/sft.log
 
 pairs:  ## Этап 4: собрать пары предпочтений: make pairs IN=logs/interactions.jsonl
 	@test -n "$(IN)" || (echo "Укажите IN=<лог взаимодействий>"; exit 1)
@@ -54,7 +54,7 @@ pairs:  ## Этап 4: собрать пары предпочтений: make pa
 
 dpo:  ## Этап 5: DPO на неявной обратной связи
 	@mkdir -p $(LOG_DIR)
-	$(PY) -m robo_agency.cli train-dpo --config $(DPO_CONFIG) 2>&1 | tee $(LOG_DIR)/dpo.log
+	PYTHONUNBUFFERED=1 $(PY) -m robo_agency.cli train-dpo --config $(DPO_CONFIG) 2>&1 | tee $(LOG_DIR)/dpo.log
 
 retention:  ## Этапы 0 и 6: замер сохранения речевых способностей
 	$(PY) -m robo_agency.cli retention --base $(BASE_MODEL) \

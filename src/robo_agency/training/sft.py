@@ -17,7 +17,12 @@ from typing import Any
 
 import yaml
 
-from .backends import apply_assistant_only_loss, load_for_sft, validate_engine
+from .backends import (
+    apply_assistant_only_loss,
+    load_for_sft,
+    prepare_dataset_rows,
+    validate_engine,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +131,9 @@ def train(config: SftConfigSpec) -> str:
         # apply_assistant_only_loss ниже.
         assistant_only_loss=(engine == "hf"),
     )
+
+    train_rows = prepare_dataset_rows(train_rows, loaded.tokenizer, engine)
+    val_rows = prepare_dataset_rows(val_rows, loaded.tokenizer, engine)
 
     trainer = SFTTrainer(
         model=loaded.model,

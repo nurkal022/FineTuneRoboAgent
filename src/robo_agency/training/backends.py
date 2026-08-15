@@ -161,6 +161,50 @@ def load_for_dpo(config: Any) -> LoadedModel:
     return LoadedModel(model=model, tokenizer=tokenizer, peft_config=None)
 
 
+def prepare_dataset_rows(
+    rows: list[dict[str, Any]],
+    tokenizer: Any,
+    engine: Engine,
+) -> list[dict[str, Any]]:
+    """Приводит корпус к виду, который понимает выбранный бэкенд.
+
+    TRL разбирает диалоговый формат сам, и HF-ветке отдаём `messages` как есть:
+    на этом же разборе держится assistant_only_loss.
+
+    Unsloth подменяет `_prepare_dataset` своей версией, а та принимает только
+    готовый `text`, пару `prompt`/`completion` или уже токенизированный вход.
+    Колонка `messages` до неё не доживает: тренер падает с требованием
+    formatting_func — причём уже ПОСЛЕ загрузки восьмимиллиардной модели.
+    Поэтому шаблон чата разворачиваем здесь, до создания тренера.
+
+    Разворачивает ровно тот же шаблон, что потом применяется на инференсе,
+    поэтому рассогласования между обучением и работой не возникает.
+    """
+    if validate_engine(engine) == "hf":
+        return rows
+
+    rendered: list[dict[str, Any]] = []
+    for index, row in enumerate(rows):
+        messages = row.get("messages")
+        if not messages:
+            raise ValueError(
+                f"Строка {index} без поля `messages`, развернуть шаблон чата не из чего: "
+                f"доступные поля {sorted(row)}"
+            )
+        rendered.append(
+            {
+                "text": tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    # Ответ ассистента должен остаться в тексте: именно его
+                    # модель и учится порождать.
+                    add_generation_prompt=False,
+                )
+            }
+        )
+    return rendered
+
+
 def apply_assistant_only_loss(trainer: Any, engine: Engine) -> Any:
     """Считать лосс только по ответу ассистента.
 
