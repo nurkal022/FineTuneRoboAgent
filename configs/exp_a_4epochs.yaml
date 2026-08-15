@@ -1,0 +1,50 @@
+# Эксперимент A: 4 эпохи с частым сохранением.
+#
+# Прогон 001 показал, что чекпойнт с лучшим eval_loss (шаг 200) вырожден
+# «всегда ACT», а финальный (300) — нет. По двум точкам не понять, где именно
+# модель выходит из вырожденного режима. Здесь шаг сохранения снижен со 200 до
+# 50, то есть точек будет восемь, и получается кривая, а не две точки.
+#
+# Четвёртая эпоха добавлена, потому что вывод «хватит двух» был опровергнут:
+# именно третья вывела модель из вырожденности. Проверяем, продолжается ли
+# улучшение дальше или начинается переобучение.
+
+base_model: unsloth/Qwen3-8B-unsloth-bnb-4bit
+engine: unsloth
+
+train_file: data/processed/train.jsonl
+val_file: data/processed/val.jsonl
+output_dir: outputs/exp-a-4epochs
+
+load_in_4bit: true
+
+learning_rate: 1.0e-4
+num_epochs: 4.0
+per_device_batch_size: 1
+gradient_accumulation_steps: 16
+max_length: 2048
+warmup_ratio: 0.03
+
+logging_steps: 10
+eval_steps: 50
+save_steps: 50
+# Держим весь ряд: при значении по умолчанию (3) ранние точки кривой
+# удалялись бы по ходу обучения, и обходить было бы нечего.
+save_total_limit: 12
+seed: 42
+
+bf16: true
+gradient_checkpointing: true
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.0
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj

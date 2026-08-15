@@ -1,0 +1,46 @@
+# Эксперимент C: обучение БЕЗ replay-данных.
+#
+# Всё, кроме состава корпуса, совпадает с прогоном 001. Проверяется, нужен ли
+# replay на самом деле: замеры retention и tools после этого прогона
+# сравниваются с теми же замерами основного адаптера.
+#
+# Если разницы нет — 25% микса можно отдать проактивности, которой не хватает.
+# Если разница есть — это измеренное обоснование третьего вклада работы.
+
+base_model: unsloth/Qwen3-8B-unsloth-bnb-4bit
+engine: unsloth
+
+train_file: data/processed_noreplay/train.jsonl
+val_file: data/processed_noreplay/val.jsonl
+output_dir: outputs/exp-c-noreplay
+
+load_in_4bit: true
+
+learning_rate: 1.0e-4
+num_epochs: 3.0
+per_device_batch_size: 1
+gradient_accumulation_steps: 16
+max_length: 2048
+warmup_ratio: 0.03
+
+logging_steps: 10
+eval_steps: 100
+save_steps: 100
+save_total_limit: 5
+seed: 42
+
+bf16: true
+gradient_checkpointing: true
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.0
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj

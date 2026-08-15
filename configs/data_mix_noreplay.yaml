@@ -1,0 +1,29 @@
+# Данные для эксперимента C: БЕЗ replay-данных.
+#
+# Replay занимает 25% микса и добавлен ради защиты от катастрофического
+# забывания. Это тоже до сих пор не проверено: возможно, двухконтурная
+# архитектура сама по себе достаточна, и replay лишний.
+#
+# Пустой список источников обрабатывается штатно: источник исключается из
+# микса, доли остальных пересчитываются (drop_empty_and_renormalize).
+# Поэтому пропорции ниже оставлены теми же, что в основном конфиге.
+
+seed: 42
+val_ratio: 0.05
+target_size: null
+proactivity_balance: true
+
+proportions:
+  proactivity: 0.55
+  function_calling: 0.20
+  replay: 0.25
+
+proactivity:
+  - path: data/raw/proactive_bench.jsonl
+
+function_calling:
+  - path: NousResearch/hermes-function-calling-v1
+    name: func_calling_singleturn
+    split: train[:3000]
+
+replay: []

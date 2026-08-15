@@ -67,6 +67,17 @@ def to_messages(row: dict[str, Any]) -> list[dict[str, str]]:
             for m in row["conversations"]
         ]
 
+    # Стенограмма одной строкой (glaive): разбирается отдельным модулем.
+    if isinstance(row.get("chat"), str) and row["chat"].strip():
+        from . import glaive
+
+        messages = glaive.parse_chat(row["chat"])
+        if messages:
+            system = (row.get("system") or "").strip()
+            if system:
+                messages.insert(0, {"role": "system", "content": system})
+            return messages
+
     prompt_key = next((k for k in _PROMPT_KEYS if row.get(k)), None)
     response_key = next((k for k in _RESPONSE_KEYS if row.get(k)), None)
     if prompt_key and response_key:

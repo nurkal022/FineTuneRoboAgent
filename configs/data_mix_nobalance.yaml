@@ -1,0 +1,35 @@
+# Данные для эксперимента B: БЕЗ выравнивания классов.
+#
+# Инвариант 4 в CLAUDE.md требует держать ACT/WAIT около 50/50 и утверждает,
+# что без этого модель приходит к стратегии «молчать всегда». Утверждение до
+# сих пор не проверено экспериментом — этот конфиг его проверяет.
+#
+# Исходный баланс данных: 1122 WAIT против 504 ACT, то есть 69% на 31%.
+
+seed: 42
+val_ratio: 0.05
+
+# Тот же размер корпуса, что и в прогоне 001. Без этого ограничения
+# невыровненные данные дали бы ~2960 примеров вместо 1832, и разницу в
+# результате нельзя было бы приписать балансу: мешался бы объём.
+target_size: 1832
+
+# Единственное содержательное отличие от configs/data_mix.yaml.
+proactivity_balance: false
+
+proportions:
+  proactivity: 0.55
+  function_calling: 0.20
+  replay: 0.25
+
+proactivity:
+  - path: data/raw/proactive_bench.jsonl
+
+function_calling:
+  - path: NousResearch/hermes-function-calling-v1
+    name: func_calling_singleturn
+    split: train[:3000]
+
+replay:
+  - path: HuggingFaceH4/ultrachat_200k
+    split: train_sft[:5000]

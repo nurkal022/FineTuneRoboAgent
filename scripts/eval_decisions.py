@@ -70,6 +70,8 @@ def main() -> int:
         action="store_true",
         help="Отключить адаптер: та же база без обучения, для сравнения",
     )
+    parser.add_argument("--json", dest="json_out", help="Куда записать метрики машиночитаемо")
+    parser.add_argument("--label", default="", help="Метка прогона для сводной таблицы")
     args = parser.parse_args()
 
     rows = load_decision_rows(Path(args.val_file), args.limit)
@@ -164,9 +166,35 @@ def main() -> int:
     else:
         print(f"\n{GREEN}Не вырождено: модель выбирает между {sorted(distinct)}{RESET}")
 
-    if predictions:
+    metrics = compute(predictions) if predictions else None
+    if metrics is not None:
         print(f"\n{BOLD}Метрики агентности{RESET}")
-        print(compute(predictions).describe())
+        print(metrics.describe())
+
+    if args.json_out:
+        payload = {
+            "label": args.label or args.adapter,
+            "adapter": args.adapter,
+            "base_only": args.base,
+            "examples": len(rows),
+            "gold": dict(gold_counts),
+            "predicted": dict(predicted_counts),
+            "invalid_json": invalid,
+            # Вырожденность выносится отдельным полем: по ней отбирается
+            # чекпойнт, и она важнее любой из метрик ниже.
+            "degenerate": len(distinct) <= 1,
+            "metrics": {
+                "timeliness": metrics.timeliness,
+                "false_intervention_rate": metrics.false_intervention_rate,
+                "precision_act": metrics.precision_act,
+                "f1_act": metrics.f1_act,
+                "decision_accuracy": metrics.decision_accuracy,
+            } if metrics is not None else None,
+        }
+        out = Path(args.json_out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"\nМетрики записаны в {out}")
 
     return 0
 

@@ -59,6 +59,9 @@ class SftConfigSpec:
     logging_steps: int = 10
     eval_steps: int = 100
     save_steps: int = 200
+    # Сколько чекпойнтов держать. Для обхода чекпойнтов нужен полный ряд:
+    # при значении по умолчанию ранние точки кривой удаляются на ходу.
+    save_total_limit: int = 3
     seed: int = 42
     bf16: bool = True
     gradient_checkpointing: bool = True
@@ -121,7 +124,7 @@ def train(config: SftConfigSpec) -> str:
         eval_strategy="steps" if val_rows else "no",
         eval_steps=config.eval_steps,
         save_steps=config.save_steps,
-        save_total_limit=3,
+        save_total_limit=config.save_total_limit,
         bf16=config.bf16,
         # У Unsloth чекпойнтинг включается при навешивании LoRA, повторно не надо.
         gradient_checkpointing=config.gradient_checkpointing and engine == "hf",
