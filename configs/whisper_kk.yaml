@@ -1,0 +1,52 @@
+# Дообучение Whisper на казахском.
+#
+# Точка отсчёта: Whisper без дообучения даёт на казахском WER около 77%,
+# то есть практически неработоспособен. Опубликованные работы по дообучению
+# на казахских данных сообщают WER порядка 14-15% и CER около 3.4%.
+# Замер базы обязателен ДО обучения — иначе не с чем сравнивать.
+
+# small (244 млн): medium даёт лучше, но обучается в разы дольше, а base
+# заметно хуже держит казахскую фонетику. Для первого прогона — small.
+model: openai/whisper-small
+language: kazakh
+task: transcribe
+
+output_dir: outputs/whisper-kk
+
+dataset:
+  # FLEURS выбран из-за диска: на машине около 10 ГБ свободно, а KSC2
+  # (1000+ часов) это сотни гигабайт. FLEURS kk_kz — порядка десяти часов.
+  path: google/fleurs
+  name: kk_kz
+  train_split: train
+  eval_split: validation
+  # Автоопределение: у FLEURS это transcription, у Common Voice sentence.
+  text_column: null
+  audio_column: audio
+  # Поток: аудио не оседает на диске целиком.
+  streaming: true
+
+learning_rate: 1.0e-5
+warmup_steps: 50
+
+# Шаги, а не эпохи: в потоковом режиме размер корпуса заранее неизвестен.
+# 1500 шагов при эффективном батче 16 — это порядка 24 тысяч примеров,
+# то есть несколько проходов по FLEURS kk_kz.
+max_steps: 1500
+
+per_device_batch_size: 8
+gradient_accumulation_steps: 2
+
+eval_steps: 250
+save_steps: 500
+save_total_limit: 2
+logging_steps: 25
+
+# Сколько примеров брать на замер. Больше — точнее, но каждый требует
+# отдельной генерации, и замер начинает занимать заметное время.
+eval_examples: 200
+
+generation_max_length: 225
+seed: 42
+bf16: true
+gradient_checkpointing: true

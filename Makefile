@@ -7,10 +7,12 @@ SFT_CONFIG ?= configs/sft_rtx5080.yaml
 DPO_CONFIG ?= configs/dpo_rtx5080.yaml
 DATA_DIR ?= data/processed
 BASE_MODEL ?= Qwen/Qwen3-8B
+ASR_CONFIG ?= configs/whisper_kk.yaml
 LOG_DIR ?= logs
 
 .DEFAULT_GOAL := help
-.PHONY: help setup doctor preflight test fetch data sft dpo pairs retention inspect clean all
+.PHONY: help setup doctor preflight test fetch data sft dpo pairs retention inspect clean all \
+	asr-peek asr-baseline asr-train asr-eval
 
 help:  ## Показать список команд
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -60,6 +62,23 @@ retention:  ## Этапы 0 и 6: замер сохранения речевых
 	$(PY) -m robo_agency.cli retention --base $(BASE_MODEL) \
 		--adapter outputs/adapter-decisions \
 		--eval-file $(DATA_DIR)/retention_eval.jsonl
+
+asr-peek:  ## Речь: осмотреть казахский корпус, не скачивая целиком
+	$(PY) scripts/asr.py --config $(ASR_CONFIG) peek
+
+asr-baseline:  ## Речь: замерить Whisper БЕЗ дообучения (точка отсчёта)
+	@mkdir -p $(LOG_DIR) docs/experiments/asr
+	$(PY) scripts/asr.py --config $(ASR_CONFIG) baseline \
+		--json docs/experiments/asr/baseline.json 2>&1 | tee $(LOG_DIR)/asr_baseline.log
+
+asr-train:  ## Речь: дообучить Whisper на казахском
+	@mkdir -p $(LOG_DIR)
+	PYTHONUNBUFFERED=1 $(PY) scripts/asr.py --config $(ASR_CONFIG) train 2>&1 | tee $(LOG_DIR)/asr_train.log
+
+asr-eval:  ## Речь: замерить дообученную модель
+	@mkdir -p $(LOG_DIR) docs/experiments/asr
+	$(PY) scripts/asr.py --config $(ASR_CONFIG) eval \
+		--json docs/experiments/asr/after.json 2>&1 | tee $(LOG_DIR)/asr_eval.log
 
 all: data sft  ## Собрать данные и обучить адаптер
 
