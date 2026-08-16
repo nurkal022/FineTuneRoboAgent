@@ -82,7 +82,23 @@ class WhisperConfig:
 
     @property
     def params_millions(self) -> int | None:
-        return KNOWN_SIZES.get(self.model)
+        """Размер модели по имени.
+
+        Дообучения выкладывают под произвольными именами
+        (`shyngys879/kazakh-whisper-large-v3-turbo`), поэтому кроме точного
+        совпадения проверяется вхождение известной архитектуры в имя.
+        Порядок проверки от длинных имён к коротким: иначе
+        `whisper-large-v3-turbo` совпал бы с `whisper-large-v3`.
+        """
+        if self.model in KNOWN_SIZES:
+            return KNOWN_SIZES[self.model]
+
+        name = self.model.lower()
+        for known in sorted(KNOWN_SIZES, key=len, reverse=True):
+            architecture = known.split("/")[-1]
+            if architecture in name:
+                return KNOWN_SIZES[known]
+        return None
 
     @property
     def trainable_millions(self) -> int | None:
@@ -93,6 +109,12 @@ class WhisperConfig:
         if not self.freeze_encoder:
             return total
         share = ENCODER_SHARE.get(self.model)
+        if share is None:
+            name = self.model.lower()
+            for known in sorted(ENCODER_SHARE, key=len, reverse=True):
+                if known.split("/")[-1] in name:
+                    share = ENCODER_SHARE[known]
+                    break
         return total if share is None else round(total * (1 - share))
 
     def estimate_vram_gb(self) -> float | None:

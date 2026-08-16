@@ -1,0 +1,13 @@
+{
+  "title": "После дообучения",
+  "model": "abilmansplus/whisper-turbo-ksc2",
+  "examples": 100,
+  "wer": 0.11024135681669928,
+  "cer": 0.038461538461538464,
+  "wer_detail": {
+    "substitutions": 116,
+    "deletions": 3,
+    "insertions": 50,
+    "reference_length": 1533
+  }
+}

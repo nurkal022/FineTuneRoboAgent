@@ -12,14 +12,32 @@ from robo_agency.asr.config import WhisperConfig, load_config
 CARD_VRAM_GB = 15.5
 
 
-def test_shipped_config_uses_turbo():
+def test_shipped_config_uses_chosen_kazakh_finetune():
+    """После эксперимента 003 конфиг указывает на готовое дообучение.
+
+    Своё обучение отменено: FLEURS kk_kz это около десяти часов против сотен
+    у KSC2, на которых обучены опубликованные модели.
+    """
     config = load_config("configs/whisper_kk.yaml")
 
-    assert config.model == "openai/whisper-large-v3-turbo"
-    assert config.freeze_encoder
-    assert "8bit" in config.optim
+    assert "kazakh" in config.model.lower()
+    assert config.language == "kazakh"
     # turbo не умеет переводить, только транскрибировать.
     assert config.task == "transcribe"
+
+
+def test_size_resolved_for_finetune_with_arbitrary_name():
+    """Дообучения выкладывают под своими именами — размер всё равно нужен."""
+    config = load_config("configs/whisper_kk.yaml")
+
+    assert config.params_millions == 809
+    assert 150 <= config.trainable_millions <= 200
+
+
+def test_turbo_not_confused_with_large_v3():
+    """`whisper-large-v3-turbo` не должен совпасть с `whisper-large-v3`."""
+    assert WhisperConfig(model="some/whisper-large-v3-turbo-kk").params_millions == 809
+    assert WhisperConfig(model="some/whisper-large-v3-kk").params_millions == 1550
 
 
 def test_freezing_encoder_leaves_only_decoder():

@@ -1,0 +1,13 @@
+{
+  "title": "После дообучения",
+  "model": "shyngys879/kazakh-whisper-large-v3-turbo",
+  "examples": 100,
+  "wer": 0.1141552511415525,
+  "cer": 0.038655299360589035,
+  "wer_detail": {
+    "substitutions": 127,
+    "deletions": 1,
+    "insertions": 47,
+    "reference_length": 1533
+  }
+}
