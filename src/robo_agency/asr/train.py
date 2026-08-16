@@ -10,15 +10,10 @@ from __future__ import annotations
 import logging
 
 from .config import WhisperConfig
-from .data import SpeechCollator, build_preprocessor, load_split, resolve_text_column
+from .data import SpeechCollator, resolve_text_column
+from .dataset import ParquetSpeechDataset, as_torch_dataset, build_preprocessor, first_row
 
 logger = logging.getLogger(__name__)
-
-
-def _first_columns(dataset) -> list[str]:
-    for row in dataset:
-        return list(row.keys())
-    raise ValueError("Датасет пуст")
 
 
 def train(config: WhisperConfig) -> str:
@@ -64,21 +59,22 @@ def train(config: WhisperConfig) -> str:
     )
 
     spec = config.dataset
-    train_raw = load_split(spec, spec.train_split)
-    eval_raw = load_split(spec, spec.eval_split)
-
-    text_column = resolve_text_column(_first_columns(train_raw), spec.text_column)
+    probe = first_row(spec.path, spec.train_split, spec.name, spec.audio_column)
+    text_column = resolve_text_column(list(probe.keys()), spec.text_column)
     logger.info("Колонка с расшифровкой: %s", text_column)
 
-    prepare = build_preprocessor(processor, spec, text_column)
-    drop = [c for c in _first_columns(train_raw)]
-    train_dataset = train_raw.map(prepare, remove_columns=drop)
-    eval_dataset = eval_raw.map(prepare, remove_columns=drop)
+    prepare = build_preprocessor(processor, spec.audio_column, text_column)
 
-    if spec.streaming:
-        # В потоковом режиме перемешивание идёт по буферу, а не по всему корпусу.
-        train_dataset = train_dataset.shuffle(seed=config.seed, buffer_size=500)
-        eval_dataset = eval_dataset.take(config.eval_examples)
+    # repeat=True: обучение задаётся шагами, и корпус проходится столько раз,
+    # сколько нужно, чтобы их набрать.
+    train_dataset = as_torch_dataset(ParquetSpeechDataset(
+        spec.path, spec.train_split, prepare, spec.name,
+        audio_column=spec.audio_column, repeat=True,
+    ))
+    eval_dataset = as_torch_dataset(ParquetSpeechDataset(
+        spec.path, spec.eval_split, prepare, spec.name,
+        limit=config.eval_examples, audio_column=spec.audio_column,
+    ))
 
     collator = SpeechCollator(
         processor=processor,
@@ -106,8 +102,9 @@ def train(config: WhisperConfig) -> str:
         report_to=[],
         seed=config.seed,
         remove_unused_columns=False,
-        # В потоковом режиме длина неизвестна, и тренер не должен её спрашивать.
-        dataloader_num_workers=2,
+        # Ноль работников намеренно: у итерируемого датасета несколько
+        # процессов читали бы один и тот же поток и дублировали записи.
+        dataloader_num_workers=0,
     )
 
     trainer = Seq2SeqTrainer(
