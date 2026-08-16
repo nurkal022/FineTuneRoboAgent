@@ -1,0 +1,13 @@
+{
+  "title": "После дообучения",
+  "model": "outputs/whisper-kk-adapt",
+  "examples": 100,
+  "wer": 0.10110893672537508,
+  "cer": 0.03768649486533617,
+  "wer_detail": {
+    "substitutions": 119,
+    "deletions": 3,
+    "insertions": 33,
+    "reference_length": 1533
+  }
+}
