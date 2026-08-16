@@ -88,7 +88,11 @@ def transcribe(
             features = processor.feature_extractor(
                 audio["array"], sampling_rate=audio.get("sampling_rate", SAMPLE_RATE),
                 return_tensors="pt",
-            ).input_features.to(device)
+            ).input_features
+            # Опубликованные дообучения часто выложены в fp16, а признаки
+            # извлекаются во float32. Без приведения свёртка энкодера падает
+            # на несовпадении типа входа и типа весов.
+            features = features.to(device=device, dtype=model.dtype)
 
             predicted = model.generate(
                 features,
