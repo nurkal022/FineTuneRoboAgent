@@ -36,7 +36,7 @@ BOLD, GREEN, YELLOW, RESET = "\033[1m", "\033[32m", "\033[33m", "\033[0m"
 
 
 def cmd_peek(args) -> int:
-    config = load_config(args.config)
+    config = _apply_overrides(load_config(args.config), args)
     for split in (config.dataset.train_split, config.dataset.eval_split):
         stats = asr_data.peek(config.dataset, split, args.limit)
         print(f"\n{BOLD}{split}{RESET}")
@@ -70,7 +70,7 @@ def cmd_peek(args) -> int:
 def _report(args, model_path: str, title: str) -> int:
     from robo_agency.asr.evaluate import transcribe
 
-    config = load_config(args.config)
+    config = _apply_overrides(load_config(args.config), args)
     report = transcribe(
         model_path, config, split=args.split, limit=args.limit, show=args.show
     )
@@ -100,13 +100,13 @@ def _report(args, model_path: str, title: str) -> int:
 
 
 def cmd_baseline(args) -> int:
-    config = load_config(args.config)
+    config = _apply_overrides(load_config(args.config), args)
     print(f"{YELLOW}Замер БЕЗ дообучения: {config.model}{RESET}")
     return _report(args, config.model, "База без дообучения")
 
 
 def cmd_eval(args) -> int:
-    config = load_config(args.config)
+    config = _apply_overrides(load_config(args.config), args)
     model_path = args.model or config.output_dir
     if not Path(model_path).exists():
         print(f"Модель {model_path} не найдена — сначала обучите: make asr-train")
@@ -117,7 +117,7 @@ def cmd_eval(args) -> int:
 def cmd_train(args) -> int:
     from robo_agency.asr.train import train
 
-    config = load_config(args.config)
+    config = _apply_overrides(load_config(args.config), args)
     print(f"{BOLD}Дообучение {config.model}{RESET}, шагов: {config.max_steps}")
     path = train(config)
     print(f"{GREEN}Готово: {path}{RESET}")
@@ -127,6 +127,14 @@ def cmd_train(args) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Whisper для казахского")
     parser.add_argument("--config", default="configs/whisper_kk.yaml")
+    # Поток экономит диск, но упирается в сеть: на медленном канале чтение
+    # parquet с встроенным аудио срывается по таймауту. Скачанный один раз
+    # сплит читается локально и надёжнее — если он помещается на диск.
+    parser.add_argument(
+        "--no-streaming",
+        action="store_true",
+        help="Скачать сплит целиком вместо потокового чтения",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     peek = subparsers.add_parser("peek", help="Осмотреть корпус")
@@ -151,6 +159,13 @@ def main() -> int:
 
     args = parser.parse_args()
     return args.func(args)
+
+
+def _apply_overrides(config, args):
+    if getattr(args, "no_streaming", False):
+        config.dataset.streaming = False
+        logger.info("Потоковое чтение отключено: сплит будет скачан целиком")
+    return config
 
 
 if __name__ == "__main__":
