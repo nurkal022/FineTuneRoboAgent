@@ -44,12 +44,26 @@ def cmd_peek(args) -> int:
         print(f"  расшифровка в поле: {stats.text_column}")
         print(f"  пустых расшифровок: {stats.empty_text} из {stats.examples}")
 
-    print(f"\n{BOLD}Модель{RESET}: {config.model}", end="")
+    print(f"\n{BOLD}Модель{RESET}: {config.model}")
     if config.params_millions:
-        print(f" ({config.params_millions} млн параметров)")
-    else:
-        print()
-    print(f"Эффективный батч: {config.effective_batch}, шагов: {config.max_steps}")
+        trainable = config.trainable_millions
+        frozen = " (энкодер заморожен)" if config.freeze_encoder else ""
+        print(f"  параметров: {config.params_millions} млн, обучается {trainable} млн{frozen}")
+    print(f"  оптимизатор: {config.optim}")
+    print(f"  эффективный батч: {config.effective_batch}, шагов: {config.max_steps}")
+
+    estimate = config.estimate_vram_gb()
+    if estimate is not None:
+        print(f"\n{BOLD}Оценка VRAM{RESET}: {estimate} ГБ")
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+                verdict = GREEN + "укладывается" if estimate < total * 0.9 else YELLOW + "впритык"
+                print(f"  доступно: {total:.1f} ГБ — {verdict}{RESET}")
+        except ImportError:
+            pass
     return 0
 
 

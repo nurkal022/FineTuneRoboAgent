@@ -47,6 +47,22 @@ def train(config: WhisperConfig) -> str:
     if config.gradient_checkpointing:
         model.config.use_cache = False
 
+    if config.freeze_encoder:
+        # У turbo энкодер это почти четыре пятых модели. Заморозка оставляет
+        # обучаемым только декодер — тот, что и отвечает за письменность.
+        if hasattr(model, "freeze_encoder"):
+            model.freeze_encoder()
+        else:
+            for parameter in model.model.encoder.parameters():
+                parameter.requires_grad = False
+
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total = sum(p.numel() for p in model.parameters())
+    logger.info(
+        "Обучаемых параметров: %.1f млн из %.1f млн (%.0f%%)",
+        trainable / 1e6, total / 1e6, 100 * trainable / total,
+    )
+
     spec = config.dataset
     train_raw = load_split(spec, spec.train_split)
     eval_raw = load_split(spec, spec.eval_split)
@@ -86,6 +102,7 @@ def train(config: WhisperConfig) -> str:
         save_steps=config.save_steps,
         save_total_limit=config.save_total_limit,
         logging_steps=config.logging_steps,
+        optim=config.optim,
         report_to=[],
         seed=config.seed,
         remove_unused_columns=False,

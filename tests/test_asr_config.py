@@ -7,7 +7,7 @@ from robo_agency.asr.data import DatasetSpec, SpeechCollator, resolve_text_colum
 def test_shipped_config_loads():
     config = load_config("configs/whisper_kk.yaml")
 
-    assert config.model == "openai/whisper-small"
+    assert config.model == "openai/whisper-large-v3-turbo"
     assert config.language == "kazakh"
     assert config.dataset.name == "kk_kz"
     # Поток обязателен: корпус целиком на диск не влезет.
