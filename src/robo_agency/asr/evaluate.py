@@ -11,7 +11,8 @@ import logging
 from dataclasses import dataclass
 
 from .config import WhisperConfig
-from .data import SAMPLE_RATE, load_split, resolve_text_column
+from .data import SAMPLE_RATE, resolve_text_column
+from .parquet_reader import iter_examples
 from .metrics import ErrorRate, character_error_rate, word_error_rate
 
 logger = logging.getLogger(__name__)
@@ -64,7 +65,12 @@ def transcribe(
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device).eval()
 
-    dataset = load_split(spec, split)
+    # Читаем parquet напрямую: datasets 4.x требует torchcodec для распаковки
+    # аудио, а тянуть ещё одну привязанную к torch зависимость на этой машине
+    # рискованно — установка пакетов тут дважды подменяла CUDA-сборку на CPU.
+    dataset = iter_examples(
+        spec.path, split, config=spec.name, limit=limit, audio_column=spec.audio_column
+    )
 
     references: list[str] = []
     hypotheses: list[str] = []
