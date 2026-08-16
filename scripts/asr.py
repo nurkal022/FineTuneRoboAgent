@@ -108,7 +108,10 @@ def cmd_baseline(args) -> int:
 def cmd_eval(args) -> int:
     config = _apply_overrides(load_config(args.config), args)
     model_path = args.model or config.output_dir
-    if not Path(model_path).exists():
+    # Путь без слеша или существующий каталог — локальная модель; иначе это
+    # идентификатор на хабе, и проверять его наличие на диске бессмысленно.
+    looks_like_repo_id = "/" in model_path and not Path(model_path).is_absolute()
+    if not Path(model_path).exists() and not looks_like_repo_id:
         print(f"Модель {model_path} не найдена — сначала обучите: make asr-train")
         return 1
     return _report(args, model_path, "После дообучения")
