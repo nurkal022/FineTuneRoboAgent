@@ -1,0 +1,230 @@
+[
+  {
+    "label": "checkpoint-50",
+    "adapter": "outputs/exp-a-4epochs/checkpoint-50",
+    "base_only": false,
+    "examples": 46,
+    "gold": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "predicted": {
+      "ACT": 37,
+      "WAIT": 9
+    },
+    "invalid_json": 0,
+    "degenerate": false,
+    "metrics": {
+      "timeliness": 0.75,
+      "false_intervention_rate": 0.8636363636363636,
+      "precision_act": 0.4864864864864865,
+      "f1_act": 0.5901639344262296,
+      "decision_accuracy": 0.45652173913043476
+    }
+  },
+  {
+    "label": "checkpoint-100",
+    "adapter": "outputs/exp-a-4epochs/checkpoint-100",
+    "base_only": false,
+    "examples": 46,
+    "gold": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "predicted": {
+      "ACT": 46
+    },
+    "invalid_json": 0,
+    "degenerate": true,
+    "metrics": {
+      "timeliness": 1.0,
+      "false_intervention_rate": 1.0,
+      "precision_act": 0.5217391304347826,
+      "f1_act": 0.6857142857142856,
+      "decision_accuracy": 0.5217391304347826
+    }
+  },
+  {
+    "label": "checkpoint-150",
+    "adapter": "outputs/exp-a-4epochs/checkpoint-150",
+    "base_only": false,
+    "examples": 46,
+    "gold": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "predicted": {
+      "ACT": 46
+    },
+    "invalid_json": 0,
+    "degenerate": true,
+    "metrics": {
+      "timeliness": 1.0,
+      "false_intervention_rate": 1.0,
+      "precision_act": 0.5217391304347826,
+      "f1_act": 0.6857142857142856,
+      "decision_accuracy": 0.5217391304347826
+    }
+  },
+  {
+    "label": "checkpoint-200",
+    "adapter": "outputs/exp-a-4epochs/checkpoint-200",
+    "base_only": false,
+    "examples": 46,
+    "gold": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "predicted": {
+      "ACT": 41,
+      "WAIT": 5
+    },
+    "invalid_json": 0,
+    "degenerate": false,
+    "metrics": {
+      "timeliness": 0.875,
+      "false_intervention_rate": 0.9090909090909091,
+      "precision_act": 0.5121951219512195,
+      "f1_act": 0.6461538461538462,
+      "decision_accuracy": 0.5
+    }
+  },
+  {
+    "label": "checkpoint-250",
+    "adapter": "outputs/exp-a-4epochs/checkpoint-250",
+    "base_only": false,
+    "examples": 46,
+    "gold": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "predicted": {
+      "WAIT": 19,
+      "ACT": 27
+    },
+    "invalid_json": 0,
+    "degenerate": false,
+    "metrics": {
+      "timeliness": 0.6666666666666666,
+      "false_intervention_rate": 0.5,
+      "precision_act": 0.5925925925925926,
+      "f1_act": 0.627450980392157,
+      "decision_accuracy": 0.5869565217391305
+    }
+  },
+  {
+    "label": "checkpoint-300",
+    "adapter": "outputs/exp-a-4epochs/checkpoint-300",
+    "base_only": false,
+    "examples": 46,
+    "gold": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "predicted": {
+      "WAIT": 30,
+      "ACT": 16
+    },
+    "invalid_json": 0,
+    "degenerate": false,
+    "metrics": {
+      "timeliness": 0.375,
+      "false_intervention_rate": 0.3181818181818182,
+      "precision_act": 0.5625,
+      "f1_act": 0.45,
+      "decision_accuracy": 0.5217391304347826
+    }
+  },
+  {
+    "label": "checkpoint-350",
+    "adapter": "outputs/exp-a-4epochs/checkpoint-350",
+    "base_only": false,
+    "examples": 46,
+    "gold": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "predicted": {
+      "WAIT": 30,
+      "ACT": 16
+    },
+    "invalid_json": 0,
+    "degenerate": false,
+    "metrics": {
+      "timeliness": 0.375,
+      "false_intervention_rate": 0.3181818181818182,
+      "precision_act": 0.5625,
+      "f1_act": 0.45,
+      "decision_accuracy": 0.5217391304347826
+    }
+  },
+  {
+    "label": "checkpoint-400",
+    "adapter": "outputs/exp-a-4epochs/checkpoint-400",
+    "base_only": false,
+    "examples": 46,
+    "gold": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "predicted": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "invalid_json": 0,
+    "degenerate": false,
+    "metrics": {
+      "timeliness": 0.5833333333333334,
+      "false_intervention_rate": 0.45454545454545453,
+      "precision_act": 0.5833333333333334,
+      "f1_act": 0.5833333333333334,
+      "decision_accuracy": 0.5652173913043478
+    }
+  },
+  {
+    "label": "checkpoint-424",
+    "adapter": "outputs/exp-a-4epochs/checkpoint-424",
+    "base_only": false,
+    "examples": 46,
+    "gold": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "predicted": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "invalid_json": 0,
+    "degenerate": false,
+    "metrics": {
+      "timeliness": 0.5833333333333334,
+      "false_intervention_rate": 0.45454545454545453,
+      "precision_act": 0.5833333333333334,
+      "f1_act": 0.5833333333333334,
+      "decision_accuracy": 0.5652173913043478
+    }
+  },
+  {
+    "label": "exp-a-4epochs",
+    "adapter": "outputs/exp-a-4epochs",
+    "base_only": false,
+    "examples": 46,
+    "gold": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "predicted": {
+      "WAIT": 22,
+      "ACT": 24
+    },
+    "invalid_json": 0,
+    "degenerate": false,
+    "metrics": {
+      "timeliness": 0.5833333333333334,
+      "false_intervention_rate": 0.45454545454545453,
+      "precision_act": 0.5833333333333334,
+      "f1_act": 0.5833333333333334,
+      "decision_accuracy": 0.5652173913043478
+    }
+  }
+]

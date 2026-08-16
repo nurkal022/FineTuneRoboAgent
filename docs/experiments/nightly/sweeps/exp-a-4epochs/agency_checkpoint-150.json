@@ -1,0 +1,22 @@
+{
+  "label": "checkpoint-150",
+  "adapter": "outputs/exp-a-4epochs/checkpoint-150",
+  "base_only": false,
+  "examples": 46,
+  "gold": {
+    "WAIT": 22,
+    "ACT": 24
+  },
+  "predicted": {
+    "ACT": 46
+  },
+  "invalid_json": 0,
+  "degenerate": true,
+  "metrics": {
+    "timeliness": 1.0,
+    "false_intervention_rate": 1.0,
+    "precision_act": 0.5217391304347826,
+    "f1_act": 0.6857142857142856,
+    "decision_accuracy": 0.5217391304347826
+  }
+}

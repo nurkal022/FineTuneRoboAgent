@@ -1,0 +1,23 @@
+{
+  "label": "C-noreplay",
+  "adapter": "outputs/exp-c-noreplay",
+  "base_only": false,
+  "examples": 46,
+  "gold": {
+    "WAIT": 22,
+    "ACT": 24
+  },
+  "predicted": {
+    "ACT": 30,
+    "WAIT": 16
+  },
+  "invalid_json": 0,
+  "degenerate": false,
+  "metrics": {
+    "timeliness": 0.7916666666666666,
+    "false_intervention_rate": 0.5,
+    "precision_act": 0.6333333333333333,
+    "f1_act": 0.7037037037037038,
+    "decision_accuracy": 0.6521739130434783
+  }
+}

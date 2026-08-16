@@ -1,0 +1,22 @@
+{
+  "label": "B-nobalance",
+  "adapter": "outputs/exp-b-nobalance",
+  "base_only": false,
+  "examples": 46,
+  "gold": {
+    "WAIT": 22,
+    "ACT": 24
+  },
+  "predicted": {
+    "WAIT": 46
+  },
+  "invalid_json": 0,
+  "degenerate": true,
+  "metrics": {
+    "timeliness": 0.0,
+    "false_intervention_rate": 0.0,
+    "precision_act": 0.0,
+    "f1_act": 0.0,
+    "decision_accuracy": 0.4782608695652174
+  }
+}
